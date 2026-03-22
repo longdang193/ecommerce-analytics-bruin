@@ -29,8 +29,11 @@
 ```bash
 # macOS / Linux
 brew install bruin-data/tap/bruin
-# or Windows (via pip)
-pip install bruin
+# or Windows (native CLI)
+# install the official Bruin Windows release, then ensure
+# C:\Users\HOANG PHI LONG DANG\.local\bin is on PATH
+# verify with:
+bruin --version
 ```
 
 Verify: `bruin version`
@@ -38,10 +41,13 @@ Verify: `bruin version`
 - [x] **Step 2: Initialize the Bruin project in DE-PROJECT root**
 
 ```bash
-bruin init default ./
+bruin init --in-place default .
 ```
 
 This creates `pipeline.yml`, `.bruin.yml`, and `assets/`.
+
+> [!NOTE]
+> On this machine, Bruin should be run from the Windows-native executable at `C:\Users\HOANG PHI LONG DANG\.local\bin\bruin.exe`. If `bruin run ...` hits a PowerShell module-loading error, use `run_bruin.bat ...`, which resets `PSModulePath` before invoking Bruin.
 
 - [x] **Step 3: Configure `pipeline.yml`**
 
@@ -110,7 +116,7 @@ assets/
 mkdir -p assets/1_staging assets/2_intermediate assets/3_marts assets/4_ml assets/5_rai assets/6_observability
 ```
 
-- [ ] **Step 8: Commit scaffold**
+- [x] **Step 8: Commit the scaffold**
 
 ```bash
 git add .
@@ -127,7 +133,7 @@ git commit -m "chore: initialize Bruin project scaffold"
 
 The GA4 export schema uses nested/repeated `event_params`. This asset reads the bounded sample dataset (2020-11-01 to 2021-01-31) and flattens it into a denormalized table for downstream consumption. This is a **batch read** — not incremental — appropriate for the fixed public sample dataset.
 
-- [ ] **Step 1: Create the staging asset**
+- [x] **Step 1: Create the staging asset**
 
 ```sql
 /* @bruin
@@ -188,7 +194,7 @@ WHERE
     _TABLE_SUFFIX BETWEEN '20201101' AND '20210131'
 ```
 
-- [ ] **Step 2: Run the asset**
+- [x] **Step 2: Run the asset**
 
 ```bash
 bruin run assets/1_staging/stg_events_flat.sql
@@ -196,7 +202,7 @@ bruin run assets/1_staging/stg_events_flat.sql
 
 Expected: Table created in BigQuery with flattened event rows. Quality checks pass.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add assets/1_staging/stg_events_flat.sql
@@ -213,7 +219,7 @@ git commit -m "feat: add stg_events_flat — flatten GA4 event export"
 
 Sessionizes flattened events by `user_pseudo_id` + `ga_session_id`.
 
-- [ ] **Step 1: Create the sessions asset**
+- [x] **Step 1: Create the sessions asset**
 
 ```sql
 /* @bruin
