@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "notebooklm": {
+      "command": "uvx",
+      "args": [
+        "notebooklm-mcp-server"
+      ]
+    },
+    "deepwiki": {
+      "serverUrl": "https://mcp.deepwiki.com/mcp"
+    },
+    "bigquery": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@google/mcp-server-bigquery"
+      ]
+    },
+    "docker": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@docker/mcp-server"
+      ]
+    }
+  }
+}
