@@ -1,4 +1,6 @@
 .agents/
+.bruin.yml
+*.json
 .vscode/
 *.log
 .DS_Store

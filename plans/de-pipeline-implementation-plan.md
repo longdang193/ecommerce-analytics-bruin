@@ -10,17 +10,21 @@
 
 **Source dataset:** `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_*` — three months of obfuscated GA4 event data (2020-11-01 to 2021-01-31).
 
+> [!NOTE]
+> **Project placeholder:** All SQL assets use `<PROJECT>` as a placeholder for your GCP project ID. Replace `<PROJECT>` globally with your actual project ID before running. The connection in `.bruin.yml` defines the project for Bruin, but asset names require the fully qualified path `<PROJECT>.de_pipeline.<table>`.
+
 ### Phase 0 — Project Scaffold
 
 #### Task 0.1: Initialize the Bruin project
 
 **Files:**
+
 - Create: `pipeline.yml`
 - Create: `.bruin.yml`
 - Create: `.gitignore`
 - Create: `assets/` (directory)
 
-- [ ] **Step 1: Install Bruin CLI**
+- [x] **Step 1: Install Bruin CLI**
 
 ```bash
 # macOS / Linux
@@ -31,7 +35,7 @@ pip install bruin
 
 Verify: `bruin version`
 
-- [ ] **Step 2: Initialize the Bruin project in DE-PROJECT root**
+- [x] **Step 2: Initialize the Bruin project in DE-PROJECT root**
 
 ```bash
 bruin init default ./
@@ -39,7 +43,7 @@ bruin init default ./
 
 This creates `pipeline.yml`, `.bruin.yml`, and `assets/`.
 
-- [ ] **Step 3: Configure `pipeline.yml`**
+- [x] **Step 3: Configure `pipeline.yml`**
 
 ```yaml
 name: de-pipeline
@@ -49,7 +53,7 @@ default_connections:
   google_cloud_platform: "gcp"
 ```
 
-- [ ] **Step 4: Configure `.bruin.yml` with BigQuery connection**
+- [x] **Step 4: Configure `.bruin.yml` with BigQuery connection**
 
 ```yaml
 default_environment: default
@@ -66,7 +70,7 @@ environments:
 > [!IMPORTANT]
 > `.bruin.yml` contains credentials and is gitignored by default. Never commit it.
 
-- [ ] **Step 5: Validate the connection**
+- [x] **Step 5: Validate the connection**
 
 ```bash
 bruin validate .
@@ -74,7 +78,23 @@ bruin validate .
 
 Expected: no errors.
 
-- [ ] **Step 6: Create the asset subdirectory structure**
+- [x] **Step 6: Create the BigQuery dataset**
+
+The pipeline needs a destination dataset. Create it before running any assets:
+
+```sql
+-- Run in BigQuery console or via bq CLI:
+CREATE SCHEMA IF NOT EXISTS `<PROJECT>.de_pipeline`
+  OPTIONS(location = 'US');
+```
+
+Or via CLI:
+
+```bash
+bq mk --location=US <PROJECT>:de_pipeline
+```
+
+- [x] **Step 7: Create the asset subdirectory structure**
 
 ```
 assets/
@@ -83,29 +103,29 @@ assets/
 ├── 3_marts/
 ├── 4_ml/
 ├── 5_rai/
-├── 6_observability/
-└── 7_semantic/
+└── 6_observability/
 ```
 
 ```bash
-mkdir -p assets/1_staging assets/2_intermediate assets/3_marts assets/4_ml assets/5_rai assets/6_observability assets/7_semantic
+mkdir -p assets/1_staging assets/2_intermediate assets/3_marts assets/4_ml assets/5_rai assets/6_observability
 ```
 
-- [ ] **Step 7: Commit scaffold**
+- [ ] **Step 8: Commit scaffold**
 
 ```bash
 git add .
 git commit -m "chore: initialize Bruin project scaffold"
 ```
 
-### Phase 1 — Staging Layer (Flatten GA4 Events)
+### Phase 1 — Staging Layer (Batch Read + Flatten GA4 Events)
 
 #### Task 1.1: Create `stg_events_flat.sql`
 
 **Files:**
+
 - Create: `assets/1_staging/stg_events_flat.sql`
 
-The GA4 export schema uses nested/repeated `event_params`. This asset flattens it into a denormalized table for downstream consumption.
+The GA4 export schema uses nested/repeated `event_params`. This asset reads the bounded sample dataset (2020-11-01 to 2021-01-31) and flattens it into a denormalized table for downstream consumption. This is a **batch read** — not incremental — appropriate for the fixed public sample dataset.
 
 - [ ] **Step 1: Create the staging asset**
 
@@ -164,6 +184,8 @@ SELECT
     (SELECT value.int_value    FROM UNNEST(event_params) WHERE key = 'engagement_time_msec')    AS engagement_time_msec
 FROM
     `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_*`
+WHERE
+    _TABLE_SUFFIX BETWEEN '20201101' AND '20210131'
 ```
 
 - [ ] **Step 2: Run the asset**
@@ -186,6 +208,7 @@ git commit -m "feat: add stg_events_flat — flatten GA4 event export"
 #### Task 2.1: Create `int_sessions.sql`
 
 **Files:**
+
 - Create: `assets/2_intermediate/int_sessions.sql`
 
 Sessionizes flattened events by `user_pseudo_id` + `ga_session_id`.
@@ -221,11 +244,11 @@ SELECT
     MIN(event_date)                                            AS session_date,
     MIN(event_timestamp)                                       AS session_start,
     MAX(event_timestamp)                                       AS session_end,
-    country,
-    device_category,
-    traffic_source,
-    traffic_medium,
-    campaign,
+    ANY_VALUE(country)                                         AS country,
+    ANY_VALUE(device_category)                                 AS device_category,
+    ANY_VALUE(traffic_source)                                  AS traffic_source,
+    ANY_VALUE(traffic_medium)                                  AS traffic_medium,
+    ANY_VALUE(campaign)                                        AS campaign,
     COUNTIF(event_name = 'page_view')                          AS page_views,
     COUNTIF(event_name = 'view_item')                          AS product_views,
     COUNTIF(event_name = 'add_to_cart')                        AS add_to_carts,
@@ -236,8 +259,7 @@ SELECT
 FROM
     `<PROJECT>.de_pipeline.stg_events_flat`
 GROUP BY
-    user_pseudo_id, ga_session_id, country, device_category,
-    traffic_source, traffic_medium, campaign
+    user_pseudo_id, ga_session_id
 ```
 
 - [ ] **Step 2: Run and validate**
@@ -256,6 +278,7 @@ git commit -m "feat: add int_sessions — sessionize flat events"
 #### Task 2.2: Create `int_customers.sql`
 
 **Files:**
+
 - Create: `assets/2_intermediate/int_customers.sql`
 
 Customer-level aggregate from sessions.
@@ -307,6 +330,7 @@ GROUP BY
 #### Task 3.1: Create `kpi_daily.sql`
 
 **Files:**
+
 - Create: `assets/3_marts/kpi_daily.sql`
 
 - [ ] **Step 1: Create the KPI mart**
@@ -344,7 +368,7 @@ SELECT
     SAFE_DIVIDE(
         COUNTIF(purchases > 0),
         COUNT(DISTINCT session_id)
-    )                                          AS conversion_rate
+    )                                          AS session_conversion_rate
 FROM
     `<PROJECT>.de_pipeline.int_sessions`
 GROUP BY
@@ -357,6 +381,7 @@ GROUP BY
 #### Task 3.2: Create `funnel_daily.sql`
 
 **Files:**
+
 - Create: `assets/3_marts/funnel_daily.sql`
 
 - [ ] **Step 1: Create the funnel mart**
@@ -382,7 +407,7 @@ SELECT
     SUM(product_views)                                 AS product_views,
     SUM(add_to_carts)                                  AS add_to_cart,
     SUM(purchases)                                     AS purchases,
-    SAFE_DIVIDE(COUNTIF(purchases > 0), COUNT(DISTINCT session_id)) AS conversion_rate
+    SAFE_DIVIDE(COUNTIF(purchases > 0), COUNT(DISTINCT session_id)) AS session_conversion_rate
 FROM
     `<PROJECT>.de_pipeline.int_sessions`
 GROUP BY
@@ -395,6 +420,7 @@ GROUP BY
 #### Task 3.3: Create `rfm_segments.sql`
 
 **Files:**
+
 - Create: `assets/3_marts/rfm_segments.sql`
 
 - [ ] **Step 1: Create the RFM mart**
@@ -430,6 +456,10 @@ WITH rfm_raw AS (
 rfm_scored AS (
     SELECT
         *,
+        -- Scoring convention: higher score = better.
+        -- recency: ORDER BY DESC so that large recency_days (least recent) land in bucket 1 (worst)
+        --          and small recency_days (most recent) land in bucket 5 (best).
+        -- frequency/monetary: ORDER BY ASC so higher values get higher scores.
         NTILE(5) OVER (ORDER BY recency_days DESC)    AS r_score,
         NTILE(5) OVER (ORDER BY frequency ASC)        AS f_score,
         NTILE(5) OVER (ORDER BY monetary ASC)         AS m_score
@@ -457,6 +487,7 @@ FROM rfm_scored
 #### Task 4.1: Create `ltv_features.sql`
 
 **Files:**
+
 - Create: `assets/4_ml/ltv_features.sql`
 
 - [ ] **Step 1: Create LTV feature table**
@@ -496,7 +527,8 @@ SELECT
     r.r_score,
     r.f_score,
     r.m_score,
-    -- Label: total_revenue_usd is the LTV proxy for the demo
+    -- PROXY LABEL: total_revenue_usd over the observed period, not true forward-looking LTV.
+    -- Acceptable for MVP demo; a production model would use a defined prediction window.
     c.total_revenue_usd AS ltv_label
 FROM
     `<PROJECT>.de_pipeline.int_customers` c
@@ -510,17 +542,19 @@ LEFT JOIN
 #### Task 4.2: Create `ltv_model_train.sql`
 
 **Files:**
+
 - Create: `assets/4_ml/ltv_model_train.sql`
 
 - [ ] **Step 1: Create model training asset**
+
+> [!IMPORTANT]
+> This asset executes DDL to create a BigQuery ML model object — it is **not** a table materialization. The `bq.sql` type runs the statement directly.
 
 ```sql
 /* @bruin
 
 name: <PROJECT>.de_pipeline.ltv_model
 type: bq.sql
-materialization:
-    type: table
 depends:
   - <PROJECT>.de_pipeline.ltv_features
 
@@ -559,6 +593,7 @@ WHERE
 #### Task 4.3: Create `ltv_predictions.sql`
 
 **Files:**
+
 - Create: `assets/4_ml/ltv_predictions.sql`
 
 - [ ] **Step 1: Create prediction asset**
@@ -581,6 +616,7 @@ SELECT
     predicted_ltv_label                             AS predicted_ltv,
     CURRENT_TIMESTAMP()                             AS scored_at,
     'ltv_model'                                     AS model_name,
+    GENERATE_UUID()                                 AS scoring_run_id,
     r_score, f_score, m_score
 FROM
     ML.PREDICT(
@@ -595,9 +631,10 @@ FROM
 #### Task 4.4: Create `ltv_prediction_history.sql`
 
 **Files:**
+
 - Create: `assets/4_ml/ltv_prediction_history.sql`
 
-Append-only history of prediction runs.
+Append-only snapshot log of prediction runs. Each full run appends all predictions with a shared `scoring_run_id`; this is **not deduplicated** history.
 
 - [ ] **Step 1: Create prediction history asset**
 
@@ -618,7 +655,8 @@ SELECT
     user_pseudo_id,
     predicted_ltv,
     scored_at,
-    model_name
+    model_name,
+    scoring_run_id
 FROM
     `<PROJECT>.de_pipeline.ltv_predictions`
 ```
@@ -629,6 +667,7 @@ FROM
 #### Task 4.5: Create ML operations metadata tables
 
 **Files:**
+
 - Create: `assets/4_ml/ml_model_registry.sql`
 - Create: `assets/4_ml/ml_training_runs.sql`
 - Create: `assets/4_ml/ml_scoring_runs.sql`
@@ -642,6 +681,7 @@ name: <PROJECT>.de_pipeline.ml_model_registry
 type: bq.sql
 materialization:
     type: table
+    strategy: append
 depends:
   - <PROJECT>.de_pipeline.ltv_model
 
@@ -649,8 +689,10 @@ depends:
 
 SELECT
     'ltv_model'                        AS model_name,
+    'v1'                               AS model_version,
     'BOOSTED_TREE_REGRESSOR'           AS model_type,
     CURRENT_TIMESTAMP()                AS registered_at,
+    '2020-11-01 to 2021-01-31'         AS training_data_date_range,
     'de_pipeline'                      AS dataset,
     'active'                           AS status
 ```
@@ -672,6 +714,10 @@ depends:
 SELECT
     trial_id,
     'ltv_model'                                AS model_name,
+    loss,
+    eval_loss,
+    duration_ms,
+    learning_rate,
     CURRENT_TIMESTAMP()                        AS run_timestamp
 FROM
     ML.TRAINING_INFO(MODEL `<PROJECT>.de_pipeline.ltv_model`)
@@ -715,6 +761,7 @@ git commit -m "feat: add ML layer — LTV features, model, predictions, ops meta
 #### Task 5.1: Create RAI tables
 
 **Files:**
+
 - Create: `assets/5_rai/rai_model_eval.sql`
 - Create: `assets/5_rai/rai_feature_importance.sql`
 - Create: `assets/5_rai/rai_segment_parity.sql`
@@ -846,18 +893,19 @@ git add assets/5_rai/
 git commit -m "feat: add Responsible AI layer — eval, importance, parity, drift"
 ```
 
-### Phase 6 — Observability Layer
+### Phase 6 — Observability Layer (Placeholder/Skeleton)
 
 #### Task 6.1: Create observability tables
 
 **Files:**
+
 - Create: `assets/6_observability/pipeline_run_log.sql`
 - Create: `assets/6_observability/data_quality_results.sql`
 - Create: `assets/6_observability/table_freshness_status.sql`
 - Create: `assets/6_observability/model_monitoring_status.sql`
 
-> [!NOTE]
-> In production, these tables would be populated by Bruin Cloud's run metadata or a custom Python asset that queries the Bruin API. For the MVP, we create skeleton tables with placeholder queries that can be evolved.
+> [!WARNING]
+> **Placeholder tables.** In production, `pipeline_run_log` and `data_quality_results` would be populated by Bruin Cloud's run metadata or a custom Python asset that queries the Bruin API. For the MVP, these are **synthetic skeleton tables** with hardcoded placeholder queries — they do not reflect real pipeline telemetry.
 
 - [ ] **Step 1: Create `pipeline_run_log.sql`**
 
@@ -1011,8 +1059,7 @@ git commit -m "feat: complete DE pipeline — staging through observability"
 graph TD
     A[events_*] --> B[stg_events_flat]
     B --> C[int_sessions]
-    B --> D[int_customers]
-    C --> D
+    C --> D[int_customers]
     C --> E[kpi_daily]
     C --> F[funnel_daily]
     D --> G[rfm_segments]

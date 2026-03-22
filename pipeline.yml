@@ -1,0 +1,5 @@
+name: ecommerce-analytics-bruin
+schedule: daily
+
+default_connections:
+  google_cloud_platform: "gcp"
