@@ -240,6 +240,7 @@ columns:
     type: STRING
     checks:
       - name: not_null
+      - name: unique
 
 @bruin */
 
@@ -250,6 +251,7 @@ SELECT
     MIN(event_date)                                            AS session_date,
     MIN(event_timestamp)                                       AS session_start,
     MAX(event_timestamp)                                       AS session_end,
+    -- Note: ANY_VALUE assumes these dimensions are stable within a session.
     ANY_VALUE(country)                                         AS country,
     ANY_VALUE(device_category)                                 AS device_category,
     ANY_VALUE(traffic_source)                                  AS traffic_source,
@@ -261,20 +263,35 @@ SELECT
     COUNTIF(event_name = 'begin_checkout')                     AS checkouts,
     COUNTIF(event_name = 'purchase')                           AS purchases,
     SUM(COALESCE(purchase_revenue_usd, 0))                     AS session_revenue_usd,
-    SUM(COALESCE(engagement_time_msec, 0))                     AS total_engagement_msec
+    SUM(COALESCE(engagement_time_msec, 0))                     AS total_engagement_msec,
+    (MAX(event_timestamp) - MIN(event_timestamp)) / 1000000.0  AS session_length_sec,
+    MAX(CASE WHEN event_name = 'view_item' THEN 1 ELSE 0 END)  AS reached_view,
+    MAX(CASE WHEN event_name = 'add_to_cart' THEN 1 ELSE 0 END)  AS reached_cart,
+    MAX(CASE WHEN event_name = 'begin_checkout' THEN 1 ELSE 0 END) AS reached_checkout,
+    MAX(CASE WHEN event_name = 'purchase' THEN 1 ELSE 0 END)     AS reached_purchase,
+    CASE 
+        WHEN MAX(CASE WHEN event_name = 'purchase' THEN 1 ELSE 0 END) = 1 THEN 'purchase'
+        WHEN MAX(CASE WHEN event_name = 'begin_checkout' THEN 1 ELSE 0 END) = 1 THEN 'checkout'
+        WHEN MAX(CASE WHEN event_name = 'add_to_cart' THEN 1 ELSE 0 END) = 1 THEN 'cart'
+        WHEN MAX(CASE WHEN event_name = 'view_item' THEN 1 ELSE 0 END) = 1 THEN 'view'
+        WHEN COUNTIF(event_name = 'page_view') > 0 THEN 'browse'
+        ELSE 'other'
+    END                                                        AS funnel_stage
 FROM
     `<PROJECT>.de_pipeline.stg_events_flat`
+WHERE
+    ga_session_id IS NOT NULL
 GROUP BY
     user_pseudo_id, ga_session_id
 ```
 
-- [ ] **Step 2: Run and validate**
+- [x] **Step 2: Run and validate**
 
 ```bash
 bruin run assets/2_intermediate/int_sessions.sql
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add assets/2_intermediate/int_sessions.sql
@@ -289,7 +306,7 @@ git commit -m "feat: add int_sessions — sessionize flat events"
 
 Customer-level aggregate from sessions.
 
-- [ ] **Step 1: Create the customer base asset**
+- [x] **Step 1: Create the customer base asset**
 
 ```sql
 /* @bruin
@@ -314,22 +331,35 @@ SELECT
     user_pseudo_id,
     MIN(session_date)                                    AS first_seen_date,
     MAX(session_date)                                    AS last_seen_date,
+    MIN(CASE WHEN purchases > 0 THEN session_date END)   AS first_purchase_date,
+    MAX(CASE WHEN purchases > 0 THEN session_date END)   AS last_purchase_date,
     DATE_DIFF(MAX(session_date), MIN(session_date), DAY) AS customer_lifespan_days,
+    DATE_DIFF(DATE('2021-01-31'), MAX(session_date), DAY) AS days_since_last_activity,
+    -- Note: days_since_last_purchase will be NULL for users with no purchase history
+    DATE_DIFF(DATE('2021-01-31'), MAX(CASE WHEN purchases > 0 THEN session_date END), DAY) AS days_since_last_purchase,
     COUNT(DISTINCT session_id)                           AS total_sessions,
     SUM(page_views)                                      AS total_page_views,
     SUM(product_views)                                   AS total_product_views,
     SUM(add_to_carts)                                    AS total_add_to_carts,
     SUM(purchases)                                       AS total_purchases,
     SUM(session_revenue_usd)                             AS total_revenue_usd,
-    SUM(total_engagement_msec) / 1000.0                  AS total_engagement_sec
+    CASE WHEN SUM(purchases) > 0 THEN TRUE ELSE FALSE END AS has_purchase_history,
+    SAFE_DIVIDE(SUM(session_revenue_usd), NULLIF(SUM(purchases), 0)) AS avg_order_value,
+    SUM(total_engagement_msec) / 1000.0                  AS total_engagement_sec,
+    CASE 
+        WHEN DATE_DIFF(DATE('2021-01-31'), MAX(session_date), DAY) > 90 THEN 'churned'
+        WHEN DATE_DIFF(DATE('2021-01-31'), MAX(session_date), DAY) > 60 THEN 'at_risk'
+        WHEN DATE_DIFF(DATE('2021-01-31'), MAX(session_date), DAY) > 30 THEN 'declining'
+        ELSE 'active'
+    END                                                  AS activity_status
 FROM
     `<PROJECT>.de_pipeline.int_sessions`
 GROUP BY
     user_pseudo_id
 ```
 
-- [ ] **Step 2: Run and validate**
-- [ ] **Step 3: Commit**
+- [x] **Step 2: Run and validate**
+- [x] **Step 3: Commit**
 
 ### Phase 3 — Marts Layer (KPI / Funnel / RFM)
 
@@ -364,6 +394,7 @@ SELECT
     country,
     device_category,
     traffic_source,
+    traffic_medium,
     COUNT(DISTINCT session_id)                 AS sessions,
     COUNT(DISTINCT user_pseudo_id)             AS unique_users,
     SUM(purchases)                             AS orders,
@@ -378,7 +409,7 @@ SELECT
 FROM
     `<PROJECT>.de_pipeline.int_sessions`
 GROUP BY
-    session_date, country, device_category, traffic_source
+    session_date, country, device_category, traffic_source, traffic_medium
 ```
 
 - [ ] **Step 2: Run and validate**
@@ -410,10 +441,11 @@ SELECT
     device_category,
     traffic_source,
     COUNT(DISTINCT session_id)                         AS sessions,
-    SUM(product_views)                                 AS product_views,
-    SUM(add_to_carts)                                  AS add_to_cart,
-    SUM(purchases)                                     AS purchases,
-    SAFE_DIVIDE(COUNTIF(purchases > 0), COUNT(DISTINCT session_id)) AS session_conversion_rate
+    SUM(reached_view)                                  AS view_sessions,
+    SUM(reached_cart)                                  AS cart_sessions,
+    SUM(reached_checkout)                              AS checkout_sessions,
+    SUM(reached_purchase)                              AS purchase_sessions,
+    SAFE_DIVIDE(SUM(reached_purchase), COUNT(DISTINCT session_id)) AS session_conversion_rate
 FROM
     `<PROJECT>.de_pipeline.int_sessions`
 GROUP BY
@@ -453,7 +485,8 @@ columns:
 WITH rfm_raw AS (
     SELECT
         user_pseudo_id,
-        DATE_DIFF(DATE('2021-01-31'), last_seen_date, DAY) AS recency_days,
+        DATE('2021-01-31')                                  AS snapshot_date,
+        DATE_DIFF(DATE('2021-01-31'), last_seen_date, DAY)  AS recency_days,
         total_sessions                                      AS frequency,
         total_revenue_usd                                   AS monetary
     FROM
@@ -466,9 +499,9 @@ rfm_scored AS (
         -- recency: ORDER BY DESC so that large recency_days (least recent) land in bucket 1 (worst)
         --          and small recency_days (most recent) land in bucket 5 (best).
         -- frequency/monetary: ORDER BY ASC so higher values get higher scores.
-        NTILE(5) OVER (ORDER BY recency_days DESC)    AS r_score,
-        NTILE(5) OVER (ORDER BY frequency ASC)        AS f_score,
-        NTILE(5) OVER (ORDER BY monetary ASC)         AS m_score
+        NTILE(5) OVER (ORDER BY recency_days DESC)                                       AS r_score,
+        NTILE(5) OVER (ORDER BY frequency ASC)                                           AS f_score,
+        NTILE(5) OVER (ORDER BY monetary ASC)                                            AS m_score
     FROM rfm_raw
 )
 SELECT
@@ -518,9 +551,17 @@ columns:
 
 @bruin */
 
+-- NOTE: All features are anchored to the snapshot date 2021-01-31.
+-- RFM scores and recency fields are only valid relative to that cutoff.
 SELECT
     c.user_pseudo_id,
+    -- Lifecycle / activity signals
     c.customer_lifespan_days,
+    c.days_since_last_activity,
+    c.days_since_last_purchase,
+    c.has_purchase_history,
+    c.activity_status,
+    -- Behavioral counters
     c.total_sessions,
     c.total_page_views,
     c.total_product_views,
@@ -528,13 +569,16 @@ SELECT
     c.total_purchases,
     c.total_revenue_usd,
     c.total_engagement_sec,
+    -- Derived ratios
     SAFE_DIVIDE(c.total_revenue_usd, NULLIF(c.total_purchases, 0))   AS avg_order_value,
     SAFE_DIVIDE(c.total_purchases, NULLIF(c.total_sessions, 0))      AS purchase_rate,
+    -- RFM scores from rfm_segments (compact segment signals)
     r.r_score,
     r.f_score,
     r.m_score,
-    -- PROXY LABEL: total_revenue_usd over the observed period, not true forward-looking LTV.
-    -- Acceptable for MVP demo; a production model would use a defined prediction window.
+    -- PROXY LABEL: total_revenue_usd over the same observed period as features.
+    -- This makes the model a customer VALUE SCORING model, not a true future-LTV predictor.
+    -- Acceptable for MVP; production would use a forward-looking prediction window.
     c.total_revenue_usd AS ltv_label
 FROM
     `<PROJECT>.de_pipeline.int_customers` c
@@ -545,7 +589,7 @@ LEFT JOIN
 - [ ] **Step 2: Run and validate**
 - [ ] **Step 3: Commit**
 
-#### Task 4.2: Create `ltv_model_train.sql`
+#### Task 4.2: Create `ltv_model_train.sql` (Customer Value Scoring Model)
 
 **Files:**
 
@@ -573,8 +617,14 @@ OPTIONS(
     data_split_method = 'AUTO_SPLIT',
     max_iterations = 50
 ) AS
+-- Customer Value Scoring Model: predicts proxy LTV (historical revenue) from behavioral features.
+-- This is NOT a true forward-looking LTV model; it fits observed value over the same period as features.
+-- Snapshot date: 2021-01-31. All recency/RFM features are relative to this cutoff.
 SELECT
     customer_lifespan_days,
+    days_since_last_activity,
+    days_since_last_purchase,
+    has_purchase_history,
     total_sessions,
     total_page_views,
     total_product_views,
@@ -617,11 +667,13 @@ depends:
 
 @bruin */
 
+-- predicted_value_score: proxy LTV score (historical revenue fit), not a true future prediction.
+-- Interpret as a relative customer value rank, not an absolute revenue forecast.
 SELECT
     user_pseudo_id,
-    predicted_ltv_label                             AS predicted_ltv,
+    predicted_ltv_label                             AS predicted_value_score,
     CURRENT_TIMESTAMP()                             AS scored_at,
-    'ltv_model'                                     AS model_name,
+    'ltv_model_v1'                                  AS model_name,
     GENERATE_UUID()                                 AS scoring_run_id,
     r_score, f_score, m_score
 FROM
@@ -834,12 +886,16 @@ depends:
 
 @bruin */
 
+-- BUSINESS PARITY NOTE: This is a business segment comparison, NOT a regulated-ML fairness metric.
+-- Segments (Champions, Loyal, etc.) are defined by the same behavioral features that drive predictions,
+-- so prediction differences across segments primarily reflect the segment definitions themselves.
+-- Interpret parity_gap as a descriptive business insight, not as an evidence of model bias.
 WITH segment_stats AS (
     SELECT
-        r.customer_segment                              AS segment_name,
-        AVG(p.predicted_ltv)                            AS avg_predicted_ltv,
-        STDDEV(p.predicted_ltv)                         AS stddev_predicted_ltv,
-        COUNT(*)                                        AS segment_size
+        r.customer_segment                                  AS segment_name,
+        AVG(p.predicted_value_score)                        AS avg_predicted_value,
+        STDDEV(p.predicted_value_score)                     AS stddev_predicted_value,
+        COUNT(*)                                            AS segment_size
     FROM
         `<PROJECT>.de_pipeline.ltv_predictions` p
     JOIN
@@ -847,17 +903,17 @@ WITH segment_stats AS (
     GROUP BY r.customer_segment
 ),
 overall AS (
-    SELECT AVG(predicted_ltv) AS global_avg FROM `<PROJECT>.de_pipeline.ltv_predictions`
+    SELECT AVG(predicted_value_score) AS global_avg FROM `<PROJECT>.de_pipeline.ltv_predictions`
 )
 SELECT
     s.segment_name,
-    s.avg_predicted_ltv,
-    s.stddev_predicted_ltv,
+    s.avg_predicted_value,
+    s.stddev_predicted_value,
     s.segment_size,
     o.global_avg,
-    ABS(s.avg_predicted_ltv - o.global_avg) / NULLIF(o.global_avg, 0) AS parity_gap,
-    CURRENT_TIMESTAMP()                                                 AS evaluation_date,
-    'ltv_model'                                                         AS model_version
+    ABS(s.avg_predicted_value - o.global_avg) / NULLIF(o.global_avg, 0) AS parity_gap,
+    CURRENT_TIMESTAMP()                                                   AS evaluation_date,
+    'ltv_model_v1'                                                        AS model_version
 FROM segment_stats s, overall o
 ```
 
@@ -876,17 +932,21 @@ depends:
 
 @bruin */
 
+-- MONITORING PATTERN NOTE: This table captures prediction distribution statistics per run.
+-- Because the underlying feature population is static (same historical GA4 sample scored each run),
+-- drift_score will be minimal or artificial in this MVP setup.
+-- Interpret this as a distribution monitoring skeleton pattern, not a production drift detector.
 SELECT
-    CURRENT_TIMESTAMP()                            AS evaluation_date,
-    'ltv_model'                                    AS model_version,
-    AVG(predicted_ltv)                             AS mean_prediction,
-    STDDEV(predicted_ltv)                          AS stddev_prediction,
-    MIN(predicted_ltv)                             AS min_prediction,
-    MAX(predicted_ltv)                             AS max_prediction,
-    APPROX_QUANTILES(predicted_ltv, 4)[OFFSET(2)]  AS median_prediction,
-    COUNT(*)                                       AS total_predictions,
-    -- drift_score: placeholder — compare to previous run in production
-    0.0                                            AS drift_score
+    CURRENT_TIMESTAMP()                                        AS evaluation_date,
+    'ltv_model_v1'                                             AS model_version,
+    AVG(predicted_value_score)                                 AS mean_prediction,
+    STDDEV(predicted_value_score)                              AS stddev_prediction,
+    MIN(predicted_value_score)                                 AS min_prediction,
+    MAX(predicted_value_score)                                 AS max_prediction,
+    APPROX_QUANTILES(predicted_value_score, 4)[OFFSET(2)]      AS median_prediction,
+    COUNT(*)                                                   AS total_predictions,
+    -- drift_score: placeholder — in production, compare to a baseline distribution snapshot
+    0.0                                                        AS drift_score
 FROM
     `<PROJECT>.de_pipeline.ltv_predictions`
 ```
