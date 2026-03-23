@@ -3,12 +3,17 @@ views:
     description: >
       Segment-level prediction parity — tracks whether the model scores customer
       segments proportionally relative to the global average.
+      parity_alert = TRUE when a segment deviates > 20% from global LTV average.
       Source: rai_segment_parity. DISCLAIMER: Not a regulated Responsible AI framework.
     cubes:
       - join_path: rai_segment_parity
         includes:
           - segment_name
+          - model_name
           - model_version
+          - parity_alert
+          - evaluated_at
           - avg_predicted_ltv
           - parity_gap
           - segment_size
+          - alert_count

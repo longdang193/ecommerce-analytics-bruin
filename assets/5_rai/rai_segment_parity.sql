@@ -38,9 +38,11 @@ SELECT
     s.median_predicted_ltv,
     s.segment_size,
     o.global_avg,
-    ABS(s.avg_predicted_ltv - o.global_avg) / NULLIF(o.global_avg, 0) AS parity_gap,
-    CURRENT_TIMESTAMP()                                                 AS evaluated_at,
-    'ltv_model'                                                         AS model_name,
-    'v1'                                                                AS model_version
+    ROUND(ABS(s.avg_predicted_ltv - o.global_avg) / NULLIF(o.global_avg, 0), 4)  AS parity_gap,
+    ROUND(ABS(s.avg_predicted_ltv - o.global_avg) / NULLIF(o.global_avg, 0), 4)  AS relative_gap,
+    ABS(s.avg_predicted_ltv - o.global_avg) / NULLIF(o.global_avg, 0) > 0.20     AS parity_alert,
+    CURRENT_TIMESTAMP()                                                            AS evaluated_at,
+    'ltv_model'                                                                    AS model_name,
+    'v1'                                                                           AS model_version
 FROM segment_stats s
 CROSS JOIN overall o

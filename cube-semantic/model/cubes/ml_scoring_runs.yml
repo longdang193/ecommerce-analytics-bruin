@@ -1,0 +1,34 @@
+cubes:
+  - name: ml_scoring_runs
+    sql_table: ecommerce-analytics-bruin.de_pipeline.ml_scoring_runs
+    description: >
+      One row per LTV model scoring run. Tracks when the model scored customers,
+      how many customers were scored, and scoring duration. Use to monitor
+      model scoring freshness and throughput.
+
+    dimensions:
+      - name: model_name
+        sql: model_name
+        type: string
+        primary_key: true
+
+      - name: scored_at
+        sql: "CAST(scoring_ended_at AS TIMESTAMP)"
+        type: time
+        description: When the scoring run completed.
+
+    measures:
+      - name: rows_scored
+        sql: rows_scored
+        type: sum
+        description: Total number of customers scored in this run.
+
+      - name: run_count
+        sql: model_name
+        type: count
+        description: Number of scoring runs.
+
+      - name: latest_rows_scored
+        sql: rows_scored
+        type: max
+        description: Customers scored in the most recent run.

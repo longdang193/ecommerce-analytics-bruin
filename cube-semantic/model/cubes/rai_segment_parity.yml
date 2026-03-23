@@ -2,18 +2,35 @@ cubes:
   - name: rai_segment_parity
     sql_table: ecommerce-analytics-bruin.de_pipeline.rai_segment_parity
     description: >
-      Pre-aggregated: one row per customer segment. Shows avg, median, stddev of
-      predicted_ltv and parity_gap (deviation from global average).
-      Use for model monitoring — not business segmentation.
+      Segment-level prediction parity for the LTV model. One row per RFM segment.
+      parity_gap = |avg_segment_ltv - global_avg| / global_avg.
+      parity_alert = TRUE when parity_gap > 20% relative threshold.
+      DISCLAIMER: Business segment comparison, not a regulated fairness audit.
 
     dimensions:
       - name: segment_name
         sql: segment_name
         type: string
+        primary_key: true
+
+      - name: model_name
+        sql: model_name
+        type: string
 
       - name: model_version
         sql: model_version
         type: string
+
+      - name: parity_alert
+        sql: parity_alert
+        type: boolean
+        description: >
+          TRUE when the segment's avg predicted LTV deviates more than 20%
+          from the global average (|parity_gap| > 0.20).
+
+      - name: evaluated_at
+        sql: "CAST(evaluated_at AS TIMESTAMP)"
+        type: time
 
     measures:
       - name: avg_predicted_ltv
@@ -25,7 +42,11 @@ cubes:
         type: max
         description: >
           Deviation of segment avg_predicted_ltv from global average.
-          Positive = over-predicted vs baseline; negative = under-predicted.
+
+      - name: alert_count
+        sql: "CASE WHEN parity_alert THEN 1 ELSE 0 END"
+        type: sum
+        description: Number of segments with parity_alert = TRUE.
 
       - name: segment_size
         sql: segment_size
