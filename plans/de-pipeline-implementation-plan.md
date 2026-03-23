@@ -369,7 +369,7 @@ GROUP BY
 
 - Create: `assets/3_marts/kpi_daily.sql`
 
-- [ ] **Step 1: Create the KPI mart**
+- [x] **Step 1: Create the KPI mart**
 
 ```sql
 /* @bruin
@@ -412,8 +412,8 @@ GROUP BY
     session_date, country, device_category, traffic_source, traffic_medium
 ```
 
-- [ ] **Step 2: Run and validate**
-- [ ] **Step 3: Commit**
+- [x] **Step 2: Run and validate**
+- [x] **Step 3: Commit**
 
 #### Task 3.2: Create `funnel_daily.sql`
 
@@ -421,7 +421,7 @@ GROUP BY
 
 - Create: `assets/3_marts/funnel_daily.sql`
 
-- [ ] **Step 1: Create the funnel mart**
+- [x] **Step 1: Create the funnel mart**
 
 ```sql
 /* @bruin
@@ -452,8 +452,8 @@ GROUP BY
     session_date, campaign, device_category, traffic_source
 ```
 
-- [ ] **Step 2: Run and validate**
-- [ ] **Step 3: Commit**
+- [x] **Step 2: Run and validate**
+- [x] **Step 3: Commit**
 
 #### Task 3.3: Create `rfm_segments.sql`
 
@@ -461,7 +461,7 @@ GROUP BY
 
 - Create: `assets/3_marts/rfm_segments.sql`
 
-- [ ] **Step 1: Create the RFM mart**
+- [x] **Step 1: Create the RFM mart**
 
 ```sql
 /* @bruin
@@ -518,8 +518,8 @@ SELECT
 FROM rfm_scored
 ```
 
-- [ ] **Step 2: Run and validate**
-- [ ] **Step 3: Commit**
+- [x] **Step 2: Run and validate**
+- [x] **Step 3: Commit**
 
 ### Phase 4 — ML Layer (Feature Engineering + BigQuery ML)
 
