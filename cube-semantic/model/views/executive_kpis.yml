@@ -1,0 +1,20 @@
+views:
+  - name: executive_kpis
+    description: >
+      Top-line business performance: revenue, orders, users, AOV.
+      Source: kpi_daily. Consumers: Executive KPIs dashboard.
+      Note: session_conversion_rate omitted until purchase_sessions is added upstream.
+    cubes:
+      - join_path: kpi_daily
+        includes:
+          - event_date
+          - traffic_source
+          - traffic_medium
+          - device_category
+          - country
+          - gross_revenue
+          - net_revenue
+          - orders
+          - unique_users
+          - sessions
+          - avg_order_value

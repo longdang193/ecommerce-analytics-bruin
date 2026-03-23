@@ -1,0 +1,56 @@
+cubes:
+  - name: rfm_segments
+    sql_table: ecommerce-analytics-bruin.de_pipeline.rfm_segments
+    description: >
+      One row per customer (user_pseudo_id). RFM scores, segment label,
+      lifetime activity metrics. Grain: customer.
+      Note: country is not present in this table.
+
+    dimensions:
+      - name: user_pseudo_id
+        sql: user_pseudo_id
+        type: string
+        primary_key: true
+
+      - name: snapshot_date
+        sql: "CAST(snapshot_date AS TIMESTAMP)"
+        type: time
+
+      - name: customer_segment
+        sql: customer_segment
+        type: string
+
+      - name: rfm_segment
+        sql: rfm_segment
+        type: string
+
+      - name: r_score
+        sql: r_score
+        type: number
+
+      - name: f_score
+        sql: f_score
+        type: number
+
+      - name: m_score
+        sql: m_score
+        type: number
+
+    measures:
+      - name: customer_count
+        sql: user_pseudo_id
+        type: count_distinct
+        description: Number of unique customers.
+
+      - name: avg_monetary
+        sql: monetary
+        type: avg
+        description: Average historical revenue per customer within a segment.
+
+      - name: avg_recency_days
+        sql: recency_days
+        type: avg
+
+      - name: avg_frequency
+        sql: frequency
+        type: avg

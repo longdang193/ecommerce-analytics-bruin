@@ -1,0 +1,32 @@
+cubes:
+  - name: rai_model_eval
+    sql_table: ecommerce-analytics-bruin.de_pipeline.rai_model_eval
+    description: >
+      Model evaluation metrics (R², MAE, MSE) per evaluation run.
+      One row per (model_name, model_version, evaluated_at).
+
+    dimensions:
+      - name: model_name
+        sql: model_name
+        type: string
+
+      - name: model_version
+        sql: model_version
+        type: string
+
+      - name: evaluated_at
+        sql: "CAST(evaluated_at AS TIMESTAMP)"
+        type: time
+
+    measures:
+      - name: r2_score
+        sql: r2_score
+        type: max
+
+      - name: mean_absolute_error
+        sql: mean_absolute_error
+        type: max
+
+      - name: mean_squared_error
+        sql: mean_squared_error
+        type: max

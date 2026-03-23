@@ -1,0 +1,66 @@
+cubes:
+  - name: funnel_daily
+    sql_table: ecommerce-analytics-bruin.de_pipeline.funnel_daily
+    description: >
+      Daily funnel stage counts per event_date, traffic_source, device_category, campaign.
+      One row per (date, source, device, campaign) combination.
+
+    dimensions:
+      - name: event_date
+        sql: "CAST(event_date AS TIMESTAMP)"
+        type: time
+
+      - name: traffic_source
+        sql: traffic_source
+        type: string
+
+      - name: device_category
+        sql: device_category
+        type: string
+
+      - name: campaign
+        sql: campaign
+        type: string
+
+    measures:
+      - name: sessions
+        sql: sessions
+        type: sum
+
+      - name: view_sessions
+        sql: view_sessions
+        type: sum
+
+      - name: cart_sessions
+        sql: cart_sessions
+        type: sum
+
+      - name: checkout_sessions
+        sql: checkout_sessions
+        type: sum
+
+      - name: purchase_sessions
+        sql: purchase_sessions
+        type: sum
+
+      - name: cart_rate
+        sql: "{cart_sessions} / NULLIF({view_sessions}, 0)"
+        type: number
+        format: percent
+        description: Share of view sessions that added to cart.
+
+      - name: checkout_rate
+        sql: "{checkout_sessions} / NULLIF({cart_sessions}, 0)"
+        type: number
+        format: percent
+
+      - name: purchase_rate
+        sql: "{purchase_sessions} / NULLIF({checkout_sessions}, 0)"
+        type: number
+        format: percent
+
+      - name: session_conversion_rate
+        sql: "{purchase_sessions} / NULLIF({sessions}, 0)"
+        type: number
+        format: percent
+        description: Share of sessions that resulted in a purchase.

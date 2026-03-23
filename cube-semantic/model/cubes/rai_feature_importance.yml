@@ -1,0 +1,34 @@
+cubes:
+  - name: rai_feature_importance
+    sql_table: ecommerce-analytics-bruin.de_pipeline.rai_feature_importance
+    description: >
+      Feature importance from ML.FEATURE_IMPORTANCE().
+      Columns: feature, importance_weight, importance_gain, importance_cover.
+      Use importance_gain as primary metric (improvement in loss per split).
+
+    dimensions:
+      - name: feature
+        sql: feature
+        type: string
+
+      - name: model_version
+        sql: model_version
+        type: string
+
+      - name: evaluated_at
+        sql: "CAST(evaluated_at AS TIMESTAMP)"
+        type: time
+
+    measures:
+      - name: importance_gain
+        sql: importance_gain
+        type: sum
+        description: Improvement in loss function per feature split. Primary importance metric.
+
+      - name: importance_weight
+        sql: importance_weight
+        type: sum
+
+      - name: importance_cover
+        sql: importance_cover
+        type: sum

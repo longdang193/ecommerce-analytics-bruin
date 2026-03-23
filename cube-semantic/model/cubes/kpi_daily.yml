@@ -1,0 +1,59 @@
+cubes:
+  - name: kpi_daily
+    sql_table: ecommerce-analytics-bruin.de_pipeline.kpi_daily
+    description: >
+      Daily KPI aggregates per event_date, traffic_source, device_category, country.
+      One row per (date, source, device, country) combination.
+
+    dimensions:
+      - name: event_date
+        sql: "CAST(event_date AS TIMESTAMP)"
+        type: time
+        primary_key: false
+
+      - name: traffic_source
+        sql: traffic_source
+        type: string
+
+      - name: traffic_medium
+        sql: traffic_medium
+        type: string
+
+      - name: device_category
+        sql: device_category
+        type: string
+
+      - name: country
+        sql: country
+        type: string
+
+    measures:
+      - name: gross_revenue
+        sql: gross_revenue
+        type: sum
+        description: Total revenue including taxes/shipping
+
+      - name: net_revenue
+        sql: net_revenue
+        type: sum
+        description: Revenue after refunds/discounts
+
+      - name: orders
+        sql: orders
+        type: sum
+
+      - name: unique_users
+        sql: unique_users
+        type: sum
+
+      - name: sessions
+        sql: sessions
+        type: sum
+
+      - name: avg_order_value
+        sql: "{gross_revenue} / NULLIF({orders}, 0)"
+        type: number
+        format: currency
+        description: >
+          Revenue per order. Computed as SUM/SUM via measure references.
+          Avoids averaging pre-computed daily ratios which would produce incorrect results.

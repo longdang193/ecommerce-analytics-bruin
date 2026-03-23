@@ -1,0 +1,21 @@
+views:
+  - name: funnel_performance
+    description: >
+      Stage-by-stage funnel progression and drop-off rates.
+      Source: funnel_daily. Consumers: Funnel dashboard.
+    cubes:
+      - join_path: funnel_daily
+        includes:
+          - event_date
+          - traffic_source
+          - device_category
+          - campaign
+          - sessions
+          - view_sessions
+          - cart_sessions
+          - checkout_sessions
+          - purchase_sessions
+          - cart_rate
+          - checkout_rate
+          - purchase_rate
+          - session_conversion_rate

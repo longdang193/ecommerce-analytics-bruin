@@ -1,0 +1,14 @@
+views:
+  - name: segment_monitoring
+    description: >
+      Segment-level prediction parity — tracks whether the model scores customer
+      segments proportionally relative to the global average.
+      Source: rai_segment_parity. DISCLAIMER: Not a regulated Responsible AI framework.
+    cubes:
+      - join_path: rai_segment_parity
+        includes:
+          - segment_name
+          - model_version
+          - avg_predicted_ltv
+          - parity_gap
+          - segment_size

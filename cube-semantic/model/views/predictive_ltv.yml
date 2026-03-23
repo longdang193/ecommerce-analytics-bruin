@@ -1,0 +1,21 @@
+views:
+  - name: predictive_ltv
+    description: >
+      Business use of customer value scores — who is high-value?
+      Source: ltv_predictions. Consumers: Predictive LTV dashboard.
+      IMPORTANT: predicted_ltv is a proxy score (historical revenue fit),
+      not a future revenue forecast. Use for relative ranking only.
+    cubes:
+      - join_path: ltv_predictions
+        includes:
+          - user_pseudo_id
+          - predicted_ltv
+          - r_score
+          - f_score
+          - m_score
+          - scored_at
+          - model_name
+          - scoring_run_id
+          - avg_predicted_ltv
+          - max_predicted_ltv
+          - customer_count

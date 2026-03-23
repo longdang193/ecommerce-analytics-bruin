@@ -1,0 +1,32 @@
+cubes:
+  - name: rai_prediction_drift
+    sql_table: ecommerce-analytics-bruin.de_pipeline.rai_prediction_drift
+    description: >
+      One row per scoring run. Tracks distribution of predicted_ltv across runs.
+      Use to detect if model output distribution shifts over time.
+
+    dimensions:
+      - name: scoring_run_id
+        sql: scoring_run_id
+        type: string
+
+      - name: model_name
+        sql: model_name
+        type: string
+
+      - name: evaluation_date
+        sql: "CAST(evaluation_date AS TIMESTAMP)"
+        type: time
+
+    measures:
+      - name: mean_prediction
+        sql: mean_prediction
+        type: max
+
+      - name: stddev_prediction
+        sql: stddev_prediction
+        type: max
+
+      - name: total_predictions
+        sql: total_predictions
+        type: max

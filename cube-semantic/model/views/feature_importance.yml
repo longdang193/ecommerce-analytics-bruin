@@ -1,0 +1,14 @@
+views:
+  - name: feature_importance
+    description: >
+      Feature importance from the ML model. Use importance_gain as primary ranking metric.
+      Source: rai_feature_importance. Consumers: Model Monitoring dashboard.
+    cubes:
+      - join_path: rai_feature_importance
+        includes:
+          - feature
+          - model_version
+          - evaluated_at
+          - importance_gain
+          - importance_weight
+          - importance_cover

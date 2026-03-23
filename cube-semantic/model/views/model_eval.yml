@@ -1,0 +1,14 @@
+views:
+  - name: model_eval
+    description: >
+      Model evaluation metrics per run: R², MAE, MSE.
+      Source: rai_model_eval. Consumers: Model Monitoring dashboard.
+    cubes:
+      - join_path: rai_model_eval
+        includes:
+          - model_name
+          - model_version
+          - evaluated_at
+          - r2_score
+          - mean_absolute_error
+          - mean_squared_error

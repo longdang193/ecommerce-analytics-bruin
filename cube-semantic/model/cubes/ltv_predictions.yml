@@ -1,0 +1,56 @@
+cubes:
+  - name: ltv_predictions
+    sql_table: ecommerce-analytics-bruin.de_pipeline.ltv_predictions
+    description: >
+      One row per scored customer. predicted_ltv is a proxy score (historical revenue fit),
+      NOT a true future revenue forecast. Use for relative customer ranking only.
+
+    dimensions:
+      - name: user_pseudo_id
+        sql: user_pseudo_id
+        type: string
+        primary_key: true
+
+      - name: predicted_ltv
+        sql: predicted_ltv
+        type: number
+        description: >
+          Raw LTV proxy score per customer. Use as a dimension to enable individual
+          customer ranking and histogram bucketing in BI tools.
+
+      - name: r_score
+        sql: r_score
+        type: number
+
+      - name: f_score
+        sql: f_score
+        type: number
+
+      - name: m_score
+        sql: m_score
+        type: number
+
+      - name: scored_at
+        sql: "CAST(scored_at AS TIMESTAMP)"
+        type: time
+
+      - name: model_name
+        sql: model_name
+        type: string
+
+      - name: scoring_run_id
+        sql: scoring_run_id
+        type: string
+
+    measures:
+      - name: avg_predicted_ltv
+        sql: predicted_ltv
+        type: avg
+
+      - name: max_predicted_ltv
+        sql: predicted_ltv
+        type: max
+
+      - name: customer_count
+        sql: user_pseudo_id
+        type: count_distinct

@@ -1,0 +1,32 @@
+cubes:
+  - name: rai_segment_parity
+    sql_table: ecommerce-analytics-bruin.de_pipeline.rai_segment_parity
+    description: >
+      Pre-aggregated: one row per customer segment. Shows avg, median, stddev of
+      predicted_ltv and parity_gap (deviation from global average).
+      Use for model monitoring — not business segmentation.
+
+    dimensions:
+      - name: segment_name
+        sql: segment_name
+        type: string
+
+      - name: model_version
+        sql: model_version
+        type: string
+
+    measures:
+      - name: avg_predicted_ltv
+        sql: avg_predicted_ltv
+        type: max
+
+      - name: parity_gap
+        sql: parity_gap
+        type: max
+        description: >
+          Deviation of segment avg_predicted_ltv from global average.
+          Positive = over-predicted vs baseline; negative = under-predicted.
+
+      - name: segment_size
+        sql: segment_size
+        type: max
