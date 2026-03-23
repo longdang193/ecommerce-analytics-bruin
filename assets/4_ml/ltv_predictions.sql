@@ -17,7 +17,8 @@ SELECT
     predicted_ltv_label                             AS predicted_ltv,
     CURRENT_TIMESTAMP()                             AS scored_at,
     'ltv_model_v1'                                  AS model_name,
-    GENERATE_UUID()                                 AS scoring_run_id,
+    -- scoring_run_id: shared across all rows in one run (timestamp-derived, not per-row UUID)
+    FORMAT_TIMESTAMP('%Y%m%dT%H%M%S', CURRENT_TIMESTAMP()) AS scoring_run_id,
     r_score, f_score, m_score
 FROM
     ML.PREDICT(
