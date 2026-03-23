@@ -1,0 +1,30 @@
+name: Scheduled Pipeline Run
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 06:00 UTC
+  workflow_dispatch:       # Manual trigger from GitHub Actions UI
+
+jobs:
+  run-pipeline:
+    name: Run Bruin Pipeline (prod)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bruin
+        run: curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/main/install.sh | sh
+
+      - name: Write GCP credentials to temp file
+        run: echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp-key.json
+
+      - name: Run full pipeline (prod environment → de_pipeline dataset)
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        run: bruin run --environment prod .
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f /tmp/gcp-key.json

@@ -3,7 +3,14 @@
 *.json
 .vscode/
 *.log
+.env.local
+
 .DS_Store
 node_modules/
 dist/
 build/
+
+logs/runs
+logs/*.log
+__pycache__/
+*.py[cod]

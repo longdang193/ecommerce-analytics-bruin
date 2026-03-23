@@ -3,3 +3,20 @@ schedule: daily
 
 default_connections:
   google_cloud_platform: "gcp"
+
+environments:
+  - name: dev
+    connections:
+      - name: google_cloud_platform
+        type: google_cloud_platform
+        project_id: ecommerce-analytics-bruin
+        dataset_id: de_pipeline_dev
+        service_account_key: $GCP_SERVICE_ACCOUNT_KEY
+
+  - name: prod
+    connections:
+      - name: google_cloud_platform
+        type: google_cloud_platform
+        project_id: ecommerce-analytics-bruin
+        dataset_id: de_pipeline
+        service_account_key: $GCP_SERVICE_ACCOUNT_KEY

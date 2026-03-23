@@ -1,0 +1,52 @@
+name: CI — Validate Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  bruin-validate:
+    name: Bruin Asset Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bruin
+        run: curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/main/install.sh | sh
+
+      - name: Validate pipeline definitions
+        # bruin validate is a local structural check — parses YAML headers,
+        # dependency graph, and SQL syntax. No BigQuery credentials required.
+        run: bruin validate .
+
+  cube-validate:
+    name: Cube YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: cube-semantic/package-lock.json
+
+      - name: Install Cube deps
+        run: npm ci
+        working-directory: cube-semantic
+
+      - name: Validate Cube model (schema compile)
+        # cubejs-cli validate compiles YAML → JS schema and reports type/field errors.
+        # Uses BQ credentials only to resolve column types — no queries are executed.
+        env:
+          CUBEJS_DB_TYPE: bigquery
+          CUBEJS_DB_BQ_PROJECT_ID: ecommerce-analytics-bruin
+          CUBEJS_DB_BQ_LOCATION: US
+          CUBEJS_DB_BQ_CREDENTIALS: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          CUBEJS_API_SECRET: ci-validation-secret
+          CUBEJS_DEV_MODE: "false"
+        run: npx cubejs-cli validate
+        working-directory: cube-semantic
