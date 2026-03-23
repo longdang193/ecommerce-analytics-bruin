@@ -2,6 +2,9 @@
 
 End-to-end data lineage for the ecommerce analytics pipeline.
 
+> **Semantic layer deployed**: Cube Cloud · GCP us-central1 · `rose-fowl.sql.gcp-us-central1.cubecloudapp.dev:5432`  
+> **Looker Studio**: connected ✓ via PostgreSQL connector — data source `rose-fowl`
+
 ---
 
 ## 1. Data Lineage — Source → Marts
@@ -103,8 +106,8 @@ flowchart LR
     end
 
     subgraph BI["BI Layer"]
-        B1["Dev Playground\nlocalhost:4000"]
-        B2["Looker Studio\n(via SQL API / ngrok)"]
+        B1["Dev Playground\nlocalhost:4000\n(local dev)"]
+        B2["Looker Studio\nPostgreSQL connector\nrose-fowl:5432 ✓"]
     end
 
     T1 --> C1 --> V1
@@ -118,7 +121,7 @@ flowchart LR
     T9 --> C9 --> V9
 
     V1 & V2 & V3 & V4 & V5 & V6 & V7 & V8 & V9 --> B1
-    V1 & V2 & V3 --> B2
+    V1 & V2 & V3 & V4 & V5 & V6 & V7 & V8 & V9 --> B2
 ```
 
 ---

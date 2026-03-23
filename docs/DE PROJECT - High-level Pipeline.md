@@ -38,40 +38,37 @@ BigQuery serving layer
   - rai_segment_parity
   - rai_prediction_drift
    ↓
-Semantic model + semantic documentation
-  - business topics
-      - Executive Performance
-      - Funnel Performance
-      - Customer Segments
-      - Predictive LTV
-      - Responsible AI
-  - shared measures
-      - gross_revenue
-      - net_revenue
-      - orders
-      - sessions
-      - conversion_rate
-      - avg_order_value
-      - predicted_ltv
-      - parity_gap
-      - drift_score
+Semantic model — Cube (cube.dev)
+  - tool: Cube open-source, deployed to Cube Cloud (GCP us-central1, free tier)
+  - deployment: https://ldang.cubecloud.dev/d/2
+  - cubes (physical table definitions, 9 cubes)
+      - kpi_daily, funnel_daily, rfm_segments
+      - ltv_predictions, ml_scoring_runs
+      - rai_model_eval, rai_feature_importance
+      - rai_segment_parity, rai_prediction_drift
+  - views (business topic definitions, 9 views)
+      - executive_kpis      → kpi_daily
+      - funnel_performance  → funnel_daily
+      - customer_segments   → rfm_segments
+      - predictive_ltv      → ltv_predictions
+      - model_eval          → rai_model_eval
+      - feature_importance  → rai_feature_importance
+      - segment_monitoring  → rai_segment_parity  (incl. parity_alert flag)
+      - prediction_drift    → rai_prediction_drift
+      - scoring_freshness   → ml_scoring_runs
+  - shared measures (defined once, correct everywhere)
+      - gross_revenue (SUM), net_revenue (SUM), orders (SUM), sessions (SUM)
+      - avg_order_value = SUM(gross_revenue) / SUM(orders)
+      - session_conversion_rate = SUM(purchase_sessions) / SUM(sessions)
+      - cart_rate, checkout_rate, purchase_rate
+      - avg_predicted_ltv, parity_gap, alert_count, drift_score, r2_score
   - shared dimensions
-      - date
-      - country
-      - device_category
-      - traffic_source
-      - campaign
-      - customer_segment
-      - model_version
-  - joins / relationships
-  - KPI definitions
-  - naming / synonyms / business-friendly fields
-  - topic documentation
-  - metric definitions
-  - dimension definitions
-  - table grain documentation
-  - assumptions / caveats
-  - dashboard-to-topic mapping
+      - date (event_date, scored_at, evaluated_at)
+      - country, device_category, traffic_source, campaign
+      - customer_segment, model_version, segment_name, feature, parity_alert
+  - Dev Playground: localhost:4000 (local dev)
+  - SQL API: Cube Cloud — rose-fowl.sql.gcp-us-central1.cubecloudapp.dev:5432
+      - database: rose-fowl  |  user: cube
    ↓
 Lineage + metadata outputs
   - source-to-table lineage
@@ -92,12 +89,18 @@ Observability layer
   - parity / fairness threshold alerts
   - dashboard source freshness status
    ↓
-BI dashboards
-  - Executive KPIs
-  - Funnel
-  - Customer Segments
-  - Predictive LTV
-  - Responsible AI
+BI dashboards — Looker Studio (connected ✓)
+  - connector: PostgreSQL → Cube Cloud SQL API (stable, no tunnels)
+  - data source: rose-fowl.sql.gcp-us-central1.cubecloudapp.dev:5432
+  - views available: executive_kpis, funnel_performance, customer_segments,
+                     predictive_ltv, model_eval, segment_monitoring,
+                     scoring_freshness, prediction_drift, feature_importance
+  - dashboards to build
+      - Executive KPIs
+      - Funnel Performance
+      - Customer Segments (RFM)
+      - Predictive LTV
+      - Responsible AI Monitoring
 
 Deployment layer
   - local Docker-based development
@@ -110,7 +113,7 @@ Deployment layer
 ## In one line
 
 ```text
-GA4 → BigQuery → Bruin transforms + checks → BigQuery ML + RAI → serving tables → semantic model + docs → lineage + observability → BI, with lightweight deployment around the stack
+GA4 → BigQuery → Bruin transforms + checks → BigQuery ML + RAI → serving tables → Cube semantic layer (cubes + views + measures) → lineage + observability → Looker Studio BI, with lightweight deployment around the stack
 ```
 
 ## What each layer does
@@ -135,16 +138,16 @@ This makes the ML part operational rather than one-off.
 
 **BigQuery serving layer**: This is the curated physical data layer. It contains trusted, analysis-ready tables produced by the pipeline.
 
-**Semantic model + documentation**: This is the reusable business-definition layer on top of the serving tables. It defines:
+**Semantic model — Cube**: Cube (cube.dev) is the open-source semantic layer on top of the serving tables. It is deployed to **Cube Cloud** (GCP us-central1) for a stable, cloud-accessible endpoint. It defines:
 
-* topics for each business area
-* approved measures
-* approved dimensions
-* joins and relationships
-* business-friendly naming
-* documentation for grain, caveats, and usage
+* **Cubes** — 9 physical table definitions with typed dimensions and `SUM/COUNT` base measures
+* **Views** — 9 business-topic facades (executive_kpis, funnel_performance, customer_segments, predictive_ltv, model_eval, feature_importance, segment_monitoring, prediction_drift, scoring_freshness), each exposing only curated fields
+* **Calculated measures** — defined once (`avg_order_value = SUM(revenue) / SUM(orders)`), enforced everywhere
+* **parity_alert** — boolean flag on `segment_monitoring` firing when a segment's predicted LTV deviates >20% from the global average
+* **Dev Playground** — live query interface at localhost:4000 for local development
+* **SQL API** — PostgreSQL wire protocol on Cube Cloud (`rose-fowl.sql.gcp-us-central1.cubecloudapp.dev:5432`) — connected to Looker Studio
 
-This prevents every dashboard or analyst from redefining metrics differently.
+This prevents every dashboard from redefining metrics differently. Cube was chosen over LookML (requires paid Looker instance) and Power BI (Windows-only, different ecosystem).
 
 **Lineage + metadata outputs**: This makes lineage a first-class output instead of an implicit idea. It shows:
 
