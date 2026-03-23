@@ -13,7 +13,7 @@ depends:
 -- Each full run appends all predictions with a shared scoring_run_id; this is NOT deduplicated history.
 SELECT
     user_pseudo_id,
-    predicted_value_score,
+    predicted_ltv,
     scored_at,
     model_name,
     scoring_run_id

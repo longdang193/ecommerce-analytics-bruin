@@ -10,11 +10,11 @@ depends:
 
 @bruin */
 
--- predicted_value_score: proxy LTV score (historical revenue fit), not a true future prediction.
+-- predicted_ltv: proxy LTV score (historical revenue fit), not a true future prediction.
 -- Interpret as a relative customer value rank, not an absolute revenue forecast.
 SELECT
     user_pseudo_id,
-    predicted_ltv_label                             AS predicted_value_score,
+    predicted_ltv_label                             AS predicted_ltv,
     CURRENT_TIMESTAMP()                             AS scored_at,
     'ltv_model_v1'                                  AS model_name,
     GENERATE_UUID()                                 AS scoring_run_id,
