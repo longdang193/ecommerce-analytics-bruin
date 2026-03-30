@@ -22,6 +22,18 @@ flowchart LR
 
 ```mermaid
 flowchart LR
+    S["Source<br/>GA4 events_*"]
+    STG["Staging<br/>stg_events_flat"]
+    INT["Intermediate<br/>int_sessions<br/>int_customers"]
+    MART["Marts<br/>kpi_daily<br/>funnel_daily<br/>rfm_segments"]
+    ML["ML Layer<br/>ltv_features<br/>ltv_predictions<br/>ml_*"]
+    RAI["RAI + Observability<br/>rai_*<br/>model_monitoring_status"]
+
+    S --> STG --> INT --> MART --> ML --> RAI
+```
+
+```mermaid
+flowchart LR
     G["Developer / CI"]
     H["GitHub Actions<br/>validate + scheduled run"]
     I["Bruin Environments<br/>dev: de_pipeline_dev<br/>prod: de_pipeline"]
