@@ -8,6 +8,8 @@
 
 ## System Flow
 
+High-level product flow from raw source data to semantic consumption.
+
 ```mermaid
 flowchart LR
     A["GA4 Sample Dataset<br/>BigQuery Public Data"]
@@ -20,6 +22,8 @@ flowchart LR
     A --> B --> C --> D --> E --> F
 ```
 
+Transformation flow showing how raw events are shaped into analytics marts, ML outputs, and monitoring tables.
+
 ```mermaid
 flowchart LR
     S["Source<br/>GA4 events_*"]
@@ -31,6 +35,8 @@ flowchart LR
 
     S --> STG --> INT --> MART --> ML --> RAI
 ```
+
+Operational flow showing how developers and CI drive validated runs into the dev/prod environments and downstream consumption.
 
 ```mermaid
 flowchart LR
