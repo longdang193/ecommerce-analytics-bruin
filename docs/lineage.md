@@ -1,3 +1,12 @@
+---
+status: active
+feature: lineage-and-observability
+feature: cube-semantic-layer
+feature: analytics-serving-layer
+feature: data-pipeline
+updated: 2026-03-30
+---
+
 # Pipeline Lineage
 
 End-to-end data lineage for the ecommerce analytics pipeline.

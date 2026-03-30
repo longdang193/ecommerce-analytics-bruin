@@ -1,0 +1,60 @@
+data-pipeline:
+  name: GA4 → BigQuery Data Pipeline
+  version: "1.0"
+  status: active
+  type: ADD
+
+  summary: >
+    End-to-end ELT pipeline that reads GA4 ecommerce events from BigQuery public data,
+    flattens nested fields, builds intermediate customer/session base tables, and materializes
+    analytics marts (KPIs, funnels, RFM segments), ML feature tables, and Responsible AI
+    evaluation tables — all orchestrated by Bruin.
+
+  invariants:
+    - "Source: `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_*` (fixed, 2020-11-01 to 2021-01-31)"
+    - "All SQL assets use `<PROJECT>` as GCP project placeholder"
+    - "Destination dataset: `<PROJECT>.de_pipeline` (prod) or `<PROJECT>.de_pipeline_dev` (dev)"
+    - "Pipeline is read-only on the source; writes only to destination dataset"
+    - "Batch read (not incremental) — source is a bounded public sample"
+
+  domains:
+    - data-engineering
+    - analytics
+    - ml-ops
+
+  depends_on: []
+
+  capabilities:
+    - "Staging: flatten nested GA4 event_params, geo, device, traffic_source, ecommerce fields"
+    - "Intermediate: sessionize events by user_pseudo_id + ga_session_id; aggregate customer lifetime metrics"
+    - "Marts: daily KPI aggregates, funnel stage progression, RFM segmentation (Recency/Frequency/Monetary)"
+    - "ML features: customer behavioral features + proxy LTV label for BQML training"
+    - "RAI: model evaluation (R²/MAE/MSE), feature importance, segment parity, prediction drift"
+    - "Observability: pipeline run log, DQ results, table freshness, model monitoring status"
+
+  refs:
+    docs:
+      - docs/DE PROJECT - High-level Pipeline.md
+      - docs/Bruin Pipeline (DE PROJECT).md
+    spec:
+      - plans/de-pipeline-implementation-plan.md
+    plan:
+      - plans/de-pipeline-implementation-plan.md
+    history:
+      - docs/features/data-pipeline/history.md
+
+  keywords:
+    - GA4
+    - BigQuery
+    - Bruin
+    - ELT
+    - staging
+    - sessions
+    - customers
+    - KPIs
+    - funnel
+    - RFM
+    - LTV
+    - BQML
+    - Responsible AI
+    - observability

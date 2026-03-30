@@ -7,6 +7,7 @@ materialization:
 depends:
   - ecommerce-analytics-bruin.de_pipeline.rai_model_eval
   - ecommerce-analytics-bruin.de_pipeline.rai_prediction_drift
+  - ecommerce-analytics-bruin.de_pipeline.ml_scoring_runs
 
 @bruin */
 

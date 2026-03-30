@@ -1,0 +1,60 @@
+deployment-cicd:
+  name: Deployment + CI/CD
+  version: "1.0"
+  status: building
+  type: ADD
+
+  summary: >
+    GitHub Actions-based deployment layer for the Bruin pipeline and Cube semantic model.
+    Provides environment separation (dev/prod datasets), CI validation on every push/PR,
+    daily scheduled production runs, and Cube Cloud auto-deploy on git push.
+
+  invariants:
+    - "Docker is NOT used for Bruin — Bruin runs as a CLI binary calling BigQuery over HTTPS"
+    - "The existing `cube-semantic/docker-compose.yml` is for Cube local dev only; not used for production"
+    - "GCP credentials are stored as GitHub Secret `GCP_SERVICE_ACCOUNT_KEY` (never committed)"
+    - "All workflows run on `ubuntu-latest` runners"
+    - "`workflow_dispatch` is enabled on the scheduled run workflow for manual triggers"
+
+  domains:
+    - data-engineering
+    - devops
+
+  depends_on:
+    - data-pipeline
+    - cube-semantic-layer
+
+  capabilities:
+    - "Environment separation: `dev` → `de_pipeline_dev` dataset; `prod` → `de_pipeline` dataset"
+    - "CI validation (on every push/PR to main): `bruin validate` plus Cube YAML lint via `cubejs-cli validate`."
+    - "Scheduled pipeline run: GitHub Actions cron at 06:00 UTC runs `bruin run --environment prod`"
+    - "Cube Cloud auto-deploy: pushes to `main` trigger Cube Cloud rebuild via GitHub integration"
+    - "Local developer setup: `.env.local` (gitignored) for local `bruin run` without modifying env vars"
+
+  rollback_trigger: >
+    BigQuery `de_pipeline.kpi_daily.last_modified_time` does not update after a scheduled run completes.
+  rollback_method: >
+    Re-run `bruin run --environment prod` manually via GitHub Actions workflow_dispatch, or
+    disable the scheduled-run workflow in GitHub Actions UI.
+
+  refs:
+    docs:
+      - docs/DE PROJECT - High-level Pipeline.md
+    spec:
+      - plans/deployment-layer-plan.md
+    plan:
+      - plans/deployment-layer-plan.md
+    history:
+      - docs/features/deployment-cicd/history.md
+
+  keywords:
+    - GitHub Actions
+    - CI
+    - CD
+    - Bruin
+    - Cube
+    - BigQuery
+    - GCP
+    - environment separation
+    - scheduled run
+    - deployment

@@ -1,0 +1,52 @@
+cube-semantic-layer:
+  name: Cube Semantic Layer
+  version: "1.0"
+  status: active
+  type: ADD
+
+  summary: >
+    Open-source semantic layer (Cube, cube.dev) deployed on Cube Cloud. Defines cubes (physical
+    table mappings), views (business topic facades), and shared measures/dimensions once in YAML —
+    replacing per-dashboard metric redefinition and enabling consistent BI reporting via Looker Studio.
+
+  invariants:
+    - "Deployed to Cube Cloud — GCP us-central1, free tier"
+    - "Dev Playground: localhost:4000 (local development only, not reachable from Looker Studio)"
+    - "SQL API: `rose-fowl.sql.gcp-us-central1.cubecloudapp.dev:5432` (PostgreSQL wire protocol)"
+    - "All measures use SUM/SUM ratios (not AVG of pre-computed ratios) to avoid incorrect weighting"
+    - "Views are single-cube only; no multi-cube joins (cubes have incompatible grains)"
+
+  domains:
+    - analytics
+    - bi
+
+  depends_on:
+    - analytics-serving-layer
+
+  capabilities:
+    - "Cubes (9 physical table definitions): `kpi_daily`, `funnel_daily`, `rfm_segments`, `ltv_predictions`, `ml_scoring_runs`, `rai_model_eval`, `rai_feature_importance`, `rai_segment_parity`, `rai_prediction_drift`."
+    - "Views (9 business topic facades): `executive_kpis`, `funnel_performance`, `customer_segments`, `predictive_ltv`, `model_eval`, `feature_importance`, `segment_monitoring`, `prediction_drift`, `scoring_freshness`."
+    - "Shared measures (defined once, enforced everywhere): gross_revenue, net_revenue, orders, sessions, avg_order_value, cart_rate, checkout_rate, purchase_rate, session_conversion_rate, avg_predicted_ltv, r2_score, parity_gap, alert_count, drift_score."
+    - "Looker Studio connector: PostgreSQL → Cube Cloud SQL API (stable, no tunnel needed)"
+
+  refs:
+    docs:
+      - docs/DE PROJECT - High-level Pipeline.md
+    spec:
+      - plans/cube-semantic-layer-implementation-plan.md
+    plan:
+      - plans/cube-semantic-layer-implementation-plan.md
+    history:
+      - docs/features/cube-semantic-layer/history.md
+
+  keywords:
+    - Cube
+    - semantic layer
+    - cubes
+    - views
+    - measures
+    - dimensions
+    - Looker Studio
+    - BI
+    - PostgreSQL
+    - Cube Cloud

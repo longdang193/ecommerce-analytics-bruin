@@ -1,0 +1,47 @@
+analytics-serving-layer:
+  name: BigQuery Analytics Serving Layer
+  version: "1.0"
+  status: active
+  type: ADD
+
+  summary: >
+    Curated physical BigQuery tables produced by the Bruin pipeline. Serves as the trusted
+    single source of truth for all downstream consumers (Cube semantic layer, BI tools).
+
+  invariants:
+    - "All tables reside in the `de_pipeline` dataset (or `de_pipeline_dev` for dev)"
+    - "Tables are read-only once materialized; pipeline re-creates them on each run"
+    - "Table names are stable; schema changes require a feature lifecycle (MODIFY)"
+
+  domains:
+    - analytics
+    - data-engineering
+
+  depends_on:
+    - data-pipeline
+
+  capabilities:
+    - "Serving / analytics tables: `kpi_daily`, `funnel_daily`, `rfm_segments`, `ltv_features`, `ltv_predictions`, `ltv_prediction_history`, `rai_model_eval`, `rai_feature_importance`, `rai_segment_parity`, `rai_prediction_drift`."
+    - "ML operations tables: `ml_model_registry`, `ml_training_runs`, `ml_scoring_runs`."
+    - "Observability tables: `pipeline_run_log`, `data_quality_results`, `table_freshness_status`, `model_monitoring_status`."
+
+  refs:
+    docs:
+      - docs/DE PROJECT - High-level Pipeline.md
+    spec:
+      - plans/de-pipeline-implementation-plan.md
+    plan:
+      - plans/de-pipeline-implementation-plan.md
+    history:
+      - docs/features/analytics-serving-layer/history.md
+
+  keywords:
+    - BigQuery
+    - serving layer
+    - KPIs
+    - funnel
+    - RFM
+    - LTV
+    - BQML
+    - RAI
+    - observability

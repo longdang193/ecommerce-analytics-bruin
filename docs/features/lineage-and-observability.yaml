@@ -1,0 +1,55 @@
+lineage-and-observability:
+  name: Lineage + Observability
+  version: "1.0"
+  status: active
+  type: ADD
+
+  summary: >
+    First-class lineage traceability (source → mart → model → prediction → BI) and operational
+    monitoring tables covering pipeline runs, data quality, freshness, model training/scoring,
+    and Responsible AI alerts.
+
+  invariants:
+    - "Lineage is documented as Mermaid diagrams in `docs/lineage.md`; not stored in a catalog"
+    - "`parity_alert` fires when `|parity_gap| / global_avg > 0.20` (20% relative gap threshold)"
+    - "Observability tables are materialized by Bruin or BQML; placeholder SQL is acceptable for MVP"
+
+  domains:
+    - data-engineering
+    - ml-ops
+    - analytics
+
+  depends_on:
+    - data-pipeline
+    - analytics-serving-layer
+    - cube-semantic-layer
+
+  capabilities:
+    - "Data lineage: source → staging → intermediate → marts (Mermaid diagram)"
+    - "ML lineage: marts → features → BQML model → predictions → RAI tables (Mermaid diagram)"
+    - "Semantic lineage: BigQuery tables → Cube cubes → Cube views → Looker Studio (Mermaid diagram)"
+    - "Observability lineage: pipeline run → monitoring tables (Mermaid diagram)"
+    - "`parity_alert` boolean on `rai_segment_parity` (20% relative gap threshold)"
+    - "`scoring_freshness` Cube view exposing `ml_scoring_runs` metadata"
+    - "`model_monitoring_status` enriched with `last_scored_at` + `total_rows_scored`"
+
+  refs:
+    docs:
+      - docs/lineage.md
+      - docs/DE PROJECT - High-level Pipeline.md
+    spec:
+      - plans/lineage-observability-plan.md
+    plan:
+      - plans/lineage-observability-plan.md
+    history:
+      - docs/features/lineage-and-observability/history.md
+
+  keywords:
+    - lineage
+    - observability
+    - data quality
+    - freshness
+    - model monitoring
+    - drift
+    - parity
+    - Mermaid

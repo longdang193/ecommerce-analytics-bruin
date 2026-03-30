@@ -1,0 +1,13 @@
+active:
+- analytics-serving-layer
+- cube-semantic-layer
+- data-pipeline
+- lineage-and-observability
+building:
+- deployment-cicd
+planned: []
+deprecated: []
+retired: []
+_meta:
+  generated_by: generate_features.py
+  note: 'status_order: [''active'', ''building'', ''planned'', ''deprecated'', ''retired'']'

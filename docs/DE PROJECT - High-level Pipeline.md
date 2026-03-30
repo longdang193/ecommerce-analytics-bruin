@@ -1,19 +1,11 @@
----
-aliases: []
-status:
-time: 2026-03-22 14-27-48
-tags:
-  - "#data-engineering"
-  - "#zoomcamp"
-TARGET DECK:
----
+# DE PROJECT - High-level Pipeline
 
 ```text
 GA4 web ecommerce demo dataset in BigQuery
 (bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_*)
    ↓
 Bruin pipeline
-  - read source tables incrementally
+  - read bounded source tables in batch mode
   - flatten / normalize GA4 event fields
   - build base business tables
   - run data quality checks
@@ -70,24 +62,21 @@ Semantic model — Cube (cube.dev)
   - SQL API: Cube Cloud — rose-fowl.sql.gcp-us-central1.cubecloudapp.dev:5432
       - database: rose-fowl  |  user: cube
    ↓
-Lineage + metadata outputs
-  - source-to-table lineage
-  - table-to-mart lineage
-  - mart-to-metric lineage
-  - metric-to-dashboard lineage
-  - source-to-model-feature lineage
-  - source-to-prediction lineage
+Lineage + metadata outputs (see [[lineage.md]])
+  - source → staging → intermediate → mart lineage
+  - mart → ML feature → model → prediction lineage
+  - BigQuery → Cube cubes → Cube views → Looker Studio lineage
+  - pipeline run → observability table lineage
    ↓
-Observability layer
-  - pipeline run status
-  - data freshness / latency
-  - row-count / volume monitoring
-  - data quality check results
-  - model training status
-  - model scoring freshness
-  - prediction drift monitoring
-  - parity / fairness threshold alerts
-  - dashboard source freshness status
+Observability layer (BigQuery tables)
+  - pipeline_run_log  — job success/failure
+  - data_quality_results — row-level DQ check outcomes
+  - table_freshness_status — last_modified_time per table
+  - ml_training_runs — BQML training iterations
+  - ml_scoring_runs — scoring run metadata + row counts
+  - model_monitoring_status — joined view of model health
+  - rai_prediction_drift — distribution shift tracking
+  - rai_segment_parity — fairness gap per segment (parity_alert flag)
    ↓
 BI dashboards — Looker Studio (connected ✓)
   - connector: PostgreSQL → Cube Cloud SQL API (stable, no tunnels)
@@ -103,11 +92,11 @@ BI dashboards — Looker Studio (connected ✓)
       - Responsible AI Monitoring
 
 Deployment layer
-  - local Docker-based development
-  - environment configs (dev / prod)
-  - CI validation for SQL / Python / pipeline definitions
-  - scheduled job deployment
-  - lightweight release process for pipeline + semantic model changes
+  - environment configs: dev (de_pipeline_dev) / prod (de_pipeline)
+  - CI validation: GitHub Actions — bruin validate + Cube YAML lint (on every push/PR)
+  - scheduled runs: GitHub Actions cron — daily 06:00 UTC (bruin run --environment prod)
+  - secrets: GCP service account via GitHub Secrets
+  - semantic model release: auto-deploy on push via Cube Cloud GitHub integration
 ```
 
 ## In one line
@@ -120,7 +109,7 @@ GA4 → BigQuery → Bruin transforms + checks → BigQuery ML + RAI → serving
 
 **GA4 + BigQuery**: GA4 exports raw event data into BigQuery, where it lands in daily event tables.
 
-**Bruin**: Bruin is the pipeline framework for transformation, dependency ordering, incremental processing, and data quality using SQL/Python assets against BigQuery.
+**Bruin**: Bruin is the pipeline framework for transformation, dependency ordering, batch execution for this bounded sample, and data quality using SQL/Python assets against BigQuery.
 
 **BigQuery ML**: Model training, versioning, and scoring happen inside BigQuery using SQL, so the MVP does not need a separate ML platform.
 
@@ -168,13 +157,13 @@ This prevents every dashboard from redefining metrics differently. Cube was chos
 
 **BI layer**: Dashboards read from the semantic model, not directly from raw tables or raw GA4 events.
 
-**Deployment layer**: This makes the project runnable and maintainable, even if lightweight:
+**Deployment layer**: GitHub Actions-based, no extra infrastructure:
 
-* local Docker setup
-* simple CI
-* environment separation
-* scheduled execution
-* controlled release process
+* **Environment separation** — `dev` targets `de_pipeline_dev` dataset; `prod` targets `de_pipeline`
+* **CI validation** — `bruin validate` (structural) + Cube YAML lint on every push/PR
+* **Scheduled runs** — GitHub Actions cron at 06:00 UTC runs `bruin run --environment prod`
+* **Secrets** — GCP service account stored as GitHub Secret `GCP_SERVICE_ACCOUNT_KEY`
+* **Semantic model release** — Cube Cloud auto-deploys on `git push origin main` via GitHub integration
 
 ## Core output tables (example)
 
@@ -204,65 +193,6 @@ Observability tables:
 * `table_freshness_status`
 * `model_monitoring_status`
 
-## Example semantic model content
-
-**Topic: Executive Performance**
-
-* Sources: `kpi_daily`
-* Measures:
- 	* `gross_revenue`
- 	* `net_revenue`
- 	* `orders`
- 	* `avg_order_value`
-* Dimensions:
- 	* `date`
- 	* `country`
- 	* `device_category`
- 	* `traffic_source`
-
-**Topic: Funnel Performance**
-
-* Sources: `funnel_daily`
-* Measures:
- 	* `sessions`
- 	* `product_views`
- 	* `add_to_cart`
- 	* `purchases`
- 	* `conversion_rate`
-* Dimensions:
- 	* `date`
- 	* `campaign`
- 	* `device_category`
- 	* `traffic_source`
-
-**Topic: Predictive LTV**
-
-* Sources: `ltv_features`, `ltv_predictions`, `ltv_prediction_history`
-* Measures:
- 	* `predicted_ltv`
- 	* `avg_predicted_ltv`
- 	* `high_ltv_customer_count`
-* Dimensions:
- 	* `prediction_date`
- 	* `customer_segment`
- 	* `country`
- 	* `device_category`
- 	* `model_version`
-
-**Topic: Responsible AI**
-
-* Sources: `rai_model_eval`, `rai_feature_importance`, `rai_segment_parity`, `rai_prediction_drift`
-* Measures:
- 	* `rmse`
- 	* `mae`
- 	* `parity_gap`
- 	* `drift_score`
-* Dimensions:
- 	* `evaluation_date`
- 	* `segment_name`
- 	* `feature_name`
- 	* `model_version`
-
 ## Why this version
 
 It still follows the Razor principle because each part has one clear job:
@@ -273,7 +203,6 @@ It still follows the Razor principle because each part has one clear job:
 * **BigQuery ML** = train / score / evaluate
 * **Serving layer** = trusted physical tables
 * **Semantic model** = trusted business definitions
-* **Semantic docs** = shared meaning and correct usage
 * **Lineage** = traceability
 * **Observability** = operational visibility
 * **Deployment** = reproducible execution
@@ -285,6 +214,21 @@ See [[bigquery-public-data.ga4_obfuscated_sample_ecommerce Dataset]].
 
 ## [[Bruin Pipeline (DE PROJECT)]]
 
-## Semantic Model
+## Feature Contracts
 
-See [[Semantic Model vs. DAX Measure]].
+See `docs/features/` for managed feature definitions:
+
+* [data-pipeline.yaml](docs/features/data-pipeline.yaml) — GA4 → BigQuery ELT pipeline
+* [analytics-serving-layer.yaml](docs/features/analytics-serving-layer.yaml) — BigQuery serving tables
+* [cube-semantic-layer.yaml](docs/features/cube-semantic-layer.yaml) — Cube semantic model
+* [lineage-and-observability.yaml](docs/features/lineage-and-observability.yaml) — Lineage + monitoring
+* [deployment-cicd.yaml](docs/features/deployment-cicd.yaml) — GitHub Actions deployment
+
+## Generated Discovery
+
+* [features_index.yaml](docs/generated/features_index.yaml) — structured index of all features
+* [feature_overview.md](docs/generated/feature_overview.md) — human-readable feature summary
+* [feature_dependency_graph.yaml](docs/generated/feature_dependency_graph.yaml) — generated dependency edges from `depends_on`
+* [feature_capabilities_index.yaml](docs/generated/feature_capabilities_index.yaml) — generated capability and keyword lookup
+* [features_by_status.yaml](docs/generated/features_by_status.yaml) — generated feature grouping by lifecycle state
+* Regenerate with `.cursor/rules/operating-system/generate_features.py` after updating `docs/features/*.yaml`.

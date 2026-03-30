@@ -1,0 +1,40 @@
+graph:
+  analytics-serving-layer:
+    depends_on:
+    - data-pipeline
+    used_by:
+    - cube-semantic-layer
+    - lineage-and-observability
+  cube-semantic-layer:
+    depends_on:
+    - analytics-serving-layer
+    used_by:
+    - deployment-cicd
+    - lineage-and-observability
+  data-pipeline:
+    depends_on: []
+    used_by:
+    - analytics-serving-layer
+    - deployment-cicd
+    - lineage-and-observability
+  deployment-cicd:
+    depends_on:
+    - cube-semantic-layer
+    - data-pipeline
+    used_by: []
+  lineage-and-observability:
+    depends_on:
+    - analytics-serving-layer
+    - cube-semantic-layer
+    - data-pipeline
+    used_by: []
+orphans:
+  no_dependencies:
+  - data-pipeline
+  no_dependents:
+  - deployment-cicd
+  - lineage-and-observability
+_meta:
+  generated_by: generate_features.py
+  note: depends_on / used_by are canonical edges. Inverse (used_by) are derived from
+    depends_on.

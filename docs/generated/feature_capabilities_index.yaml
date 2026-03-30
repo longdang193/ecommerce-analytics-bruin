@@ -1,0 +1,171 @@
+capabilities:
+- capability: 'CI validation (on every push/PR to main): `bruin validate` plus Cube
+    YAML lint via `cubejs-cli validate`.'
+  feature_id: deployment-cicd
+- capability: 'Cube Cloud auto-deploy: pushes to `main` trigger Cube Cloud rebuild
+    via GitHub integration'
+  feature_id: deployment-cicd
+- capability: 'Cubes (9 physical table definitions): `kpi_daily`, `funnel_daily`,
+    `rfm_segments`, `ltv_predictions`, `ml_scoring_runs`, `rai_model_eval`, `rai_feature_importance`,
+    `rai_segment_parity`, `rai_prediction_drift`.'
+  feature_id: cube-semantic-layer
+- capability: 'Data lineage: source → staging → intermediate → marts (Mermaid diagram)'
+  feature_id: lineage-and-observability
+- capability: 'Environment separation: `dev` → `de_pipeline_dev` dataset; `prod` →
+    `de_pipeline` dataset'
+  feature_id: deployment-cicd
+- capability: 'Intermediate: sessionize events by user_pseudo_id + ga_session_id;
+    aggregate customer lifetime metrics'
+  feature_id: data-pipeline
+- capability: 'Local developer setup: `.env.local` (gitignored) for local `bruin run`
+    without modifying env vars'
+  feature_id: deployment-cicd
+- capability: 'Looker Studio connector: PostgreSQL → Cube Cloud SQL API (stable, no
+    tunnel needed)'
+  feature_id: cube-semantic-layer
+- capability: 'ML features: customer behavioral features + proxy LTV label for BQML
+    training'
+  feature_id: data-pipeline
+- capability: 'ML lineage: marts → features → BQML model → predictions → RAI tables
+    (Mermaid diagram)'
+  feature_id: lineage-and-observability
+- capability: 'ML operations tables: `ml_model_registry`, `ml_training_runs`, `ml_scoring_runs`.'
+  feature_id: analytics-serving-layer
+- capability: 'Marts: daily KPI aggregates, funnel stage progression, RFM segmentation
+    (Recency/Frequency/Monetary)'
+  feature_id: data-pipeline
+- capability: 'Observability lineage: pipeline run → monitoring tables (Mermaid diagram)'
+  feature_id: lineage-and-observability
+- capability: 'Observability tables: `pipeline_run_log`, `data_quality_results`, `table_freshness_status`,
+    `model_monitoring_status`.'
+  feature_id: analytics-serving-layer
+- capability: 'Observability: pipeline run log, DQ results, table freshness, model
+    monitoring status'
+  feature_id: data-pipeline
+- capability: 'RAI: model evaluation (R²/MAE/MSE), feature importance, segment parity,
+    prediction drift'
+  feature_id: data-pipeline
+- capability: 'Scheduled pipeline run: GitHub Actions cron at 06:00 UTC runs `bruin
+    run --environment prod`'
+  feature_id: deployment-cicd
+- capability: 'Semantic lineage: BigQuery tables → Cube cubes → Cube views → Looker
+    Studio (Mermaid diagram)'
+  feature_id: lineage-and-observability
+- capability: 'Serving / analytics tables: `kpi_daily`, `funnel_daily`, `rfm_segments`,
+    `ltv_features`, `ltv_predictions`, `ltv_prediction_history`, `rai_model_eval`,
+    `rai_feature_importance`, `rai_segment_parity`, `rai_prediction_drift`.'
+  feature_id: analytics-serving-layer
+- capability: 'Shared measures (defined once, enforced everywhere): gross_revenue,
+    net_revenue, orders, sessions, avg_order_value, cart_rate, checkout_rate, purchase_rate,
+    session_conversion_rate, avg_predicted_ltv, r2_score, parity_gap, alert_count,
+    drift_score.'
+  feature_id: cube-semantic-layer
+- capability: 'Staging: flatten nested GA4 event_params, geo, device, traffic_source,
+    ecommerce fields'
+  feature_id: data-pipeline
+- capability: 'Views (9 business topic facades): `executive_kpis`, `funnel_performance`,
+    `customer_segments`, `predictive_ltv`, `model_eval`, `feature_importance`, `segment_monitoring`,
+    `prediction_drift`, `scoring_freshness`.'
+  feature_id: cube-semantic-layer
+- capability: '`model_monitoring_status` enriched with `last_scored_at` + `total_rows_scored`'
+  feature_id: lineage-and-observability
+- capability: '`parity_alert` boolean on `rai_segment_parity` (20% relative gap threshold)'
+  feature_id: lineage-and-observability
+- capability: '`scoring_freshness` Cube view exposing `ml_scoring_runs` metadata'
+  feature_id: lineage-and-observability
+keywords:
+  bi:
+  - cube-semantic-layer
+  bigquery:
+  - analytics-serving-layer
+  - data-pipeline
+  - deployment-cicd
+  bqml:
+  - analytics-serving-layer
+  - data-pipeline
+  bruin:
+  - data-pipeline
+  - deployment-cicd
+  cd:
+  - deployment-cicd
+  ci:
+  - deployment-cicd
+  cube:
+  - cube-semantic-layer
+  - deployment-cicd
+  cube cloud:
+  - cube-semantic-layer
+  cubes:
+  - cube-semantic-layer
+  customers:
+  - data-pipeline
+  data quality:
+  - lineage-and-observability
+  deployment:
+  - deployment-cicd
+  dimensions:
+  - cube-semantic-layer
+  drift:
+  - lineage-and-observability
+  elt:
+  - data-pipeline
+  environment separation:
+  - deployment-cicd
+  freshness:
+  - lineage-and-observability
+  funnel:
+  - analytics-serving-layer
+  - data-pipeline
+  ga4:
+  - data-pipeline
+  gcp:
+  - deployment-cicd
+  github actions:
+  - deployment-cicd
+  kpis:
+  - analytics-serving-layer
+  - data-pipeline
+  lineage:
+  - lineage-and-observability
+  looker studio:
+  - cube-semantic-layer
+  ltv:
+  - analytics-serving-layer
+  - data-pipeline
+  measures:
+  - cube-semantic-layer
+  mermaid:
+  - lineage-and-observability
+  model monitoring:
+  - lineage-and-observability
+  observability:
+  - analytics-serving-layer
+  - data-pipeline
+  - lineage-and-observability
+  parity:
+  - lineage-and-observability
+  postgresql:
+  - cube-semantic-layer
+  rai:
+  - analytics-serving-layer
+  responsible ai:
+  - data-pipeline
+  rfm:
+  - analytics-serving-layer
+  - data-pipeline
+  scheduled run:
+  - deployment-cicd
+  semantic layer:
+  - cube-semantic-layer
+  serving layer:
+  - analytics-serving-layer
+  sessions:
+  - data-pipeline
+  staging:
+  - data-pipeline
+  views:
+  - cube-semantic-layer
+_meta:
+  generated_by: generate_features.py
+  note: capabilities are verbatim from feature YAMLs; keywords are from feature keywords
+    fields.

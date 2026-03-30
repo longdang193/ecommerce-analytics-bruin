@@ -1,12 +1,4 @@
----
-aliases: []
-status:
-time: 2026-03-22 14-35-09
-tags:
-  - "#data-engineering"
-  - "#zoomcamp"
-TARGET DECK:
----
+# BigQuery Public Data - GA4 Obfuscated Sample Ecommerce Dataset
 
 `bigquery-public-data.ga4_obfuscated_sample_ecommerce` is the public BigQuery dataset `bigquery-public-data.ga4_obfuscated_sample_ecommerce`, built from the Google Merchandise Store’s GA4 web ecommerce implementation.
 
@@ -19,7 +11,7 @@ GA4 web ecommerce demo dataset in BigQuery
 (bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_*)
    ↓
 Bruin pipeline
-  - read source tables incrementally
+  - read bounded source tables in batch mode
   - flatten / normalize GA4 event fields
   - build base business tables
   - run data quality checks
@@ -54,7 +46,7 @@ You do not need to build the GA4 ingestion part yourself for the demo. You can s
 
 ## The first Bruin asset should flatten GA4 export structure
 
-The most important early step is a `raw_events_flat` or `base_events_flat` table that extracts the fields you need from the GA4 event export schema, especially from repeated/nested structures like `event_params`. Google’s sample page points to the GA4 BigQuery event export schema as the next step for working with the dataset. ([Google for Developers][1])
+The most important early step is a flattened staging table like `stg_events_flat` that extracts the fields you need from the GA4 event export schema, especially from repeated/nested structures like `event_params`. Google’s sample page points to the GA4 BigQuery event export schema as the next step for working with the dataset. ([Google for Developers][1])
 
 ## You should design around the dataset’s limitations
 

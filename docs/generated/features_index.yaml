@@ -1,0 +1,50 @@
+# Generated Discovery — Do not edit manually
+# Source: docs/features/*.yaml
+# Regenerate when any feature YAML changes
+
+features:
+  - feature_id: analytics-serving-layer
+    version: 1.0
+    status: active
+    type: add
+    owner: 
+    domains: [analytics, data-engineering]
+    contract: docs\features\analytics-serving-layer.yaml
+    history: docs\features\analytics-serving-layer\history.md
+
+  - feature_id: cube-semantic-layer
+    version: 1.0
+    status: active
+    type: add
+    owner: 
+    domains: [analytics, bi]
+    contract: docs\features\cube-semantic-layer.yaml
+    history: docs\features\cube-semantic-layer\history.md
+
+  - feature_id: data-pipeline
+    version: 1.0
+    status: active
+    type: add
+    owner: 
+    domains: [data-engineering, analytics, ml-ops]
+    contract: docs\features\data-pipeline.yaml
+    history: docs\features\data-pipeline\history.md
+
+  - feature_id: deployment-cicd
+    version: 1.0
+    status: building
+    type: add
+    owner: 
+    domains: [data-engineering, devops]
+    contract: docs\features\deployment-cicd.yaml
+    history: docs\features\deployment-cicd\history.md
+
+  - feature_id: lineage-and-observability
+    version: 1.0
+    status: active
+    type: add
+    owner: 
+    domains: [data-engineering, ml-ops, analytics]
+    contract: docs\features\lineage-and-observability.yaml
+    history: docs\features\lineage-and-observability\history.md
+
